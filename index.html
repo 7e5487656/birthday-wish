@@ -286,31 +286,31 @@
       transform: scale(1.1);
     }
     .panel-header .tooltip-trigger .tooltip-text {
-      visibility: hidden;
-      opacity: 0;
-      width: 280px;
-      background: var(--panel);
-      color: var(--text);
-      text-align: left;
-      border: 1px solid var(--border);
-      border-radius: 8px;
-      padding: 0.8rem 1rem;
-      position: absolute;
-      z-index: 1000;
-      bottom: calc(100% + 12px);
-      left: 50%;
-      transform: translateX(-50%);
-      font-size: 0.8rem;
-      font-weight: 400;
-      font-family: var(--font);
-      box-shadow: 0 8px 24px var(--shadow);
-      transition: opacity 0.3s, visibility 0.3s;
-      line-height: 1.5;
-      white-space: normal;
-      width: max-content;
-      max-width: 320px;
-      pointer-events: none;
-    }
+  visibility: hidden;
+  opacity: 0;
+  width: 320px;
+  max-width: 90vw;
+  background: var(--panel);
+  color: var(--text);
+  text-align: left;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  padding: 0.6rem 0.8rem;
+  position: fixed;
+  z-index: 9999;
+  bottom: auto;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  font-size: 0.7rem;
+  font-weight: 400;
+  font-family: var(--font);
+  box-shadow: 0 8px 32px rgba(0,0,0,0.4);
+  transition: opacity 0.3s, visibility 0.3s;
+  line-height: 1.6;
+  white-space: normal;
+  pointer-events: none;
+}
     .panel-header .tooltip-trigger:hover .tooltip-text {
       visibility: visible;
       opacity: 1;
@@ -400,7 +400,24 @@
       background: var(--panel);
       transition: background var(--transition);
     }
+.panel-header .tooltip-trigger:hover .tooltip-text {
+  visibility: visible;
+  opacity: 1;
+}
 
+/* Затемнение фона при открытой подсказке */
+.panel-header .tooltip-trigger .tooltip-text::before {
+  content: '';
+  position: fixed;
+  inset: 0;
+  background: rgba(0,0,0,0.3);
+  z-index: -1;
+  display: none;
+}
+
+.panel-header .tooltip-trigger:hover .tooltip-text::before {
+  display: block;
+}
     /* responsive */
     @media (max-width: 640px) {
       header { flex-direction: column; align-items: stretch; text-align: center; }
@@ -516,7 +533,7 @@
     </div>
   </div>
 
-  <footer>С днём рождения · Код с душой</footer>
+  <footer>Тёплые слова · Код с душой</footer>
 
   <script>
     // ====== НАСТРОЙКИ ======
@@ -539,18 +556,18 @@
       const age = new Date().getFullYear() - birthYear;
       const phrase1 = birthday_phrases[0].replace('N', age);
       return `
-  🎉 С Днём Рождения, ${name}! 🎉
+  🎉 Дорогой ${name}! 🎉
 
   Сегодня твой уровень прокачан до ${age} лет.
-  Статус: ONLINE · критические ошибки отсутствуют.
+  Статус: ONLINE · Критические ошибки отсутствуют.
 
   ${phrase1}
   ${birthday_phrases[1]}
   ${birthday_phrases[2]}
   ${birthday_phrases[3]}
 
-  Ты — тот коллега, чей код (и жизнь) не требует рефакторинга:
-    • дедлайн? → закрытый тикет с запасом времени.
+  Ты — тот коллега, чей код (и жизнь) не требуют рефакторинга:
+    • дедлайн? → закрытая задача с запасом времени.
     • проблема? → мелкий баг, исправленный одной шуткой.
     • идея? → идеальный промпт → SoTA-результат.
     • поддержка? → стабильный микросервис, never down.
