@@ -4,6 +4,8 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
   <title>Birthday · Compiler</title>
+  <!-- Font Awesome для иконок -->
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
   <style>
     /* ----- reset & variables ----- */
     * { margin: 0; padding: 0; box-sizing: border-box; }
@@ -21,6 +23,8 @@
       --font: 'Inter', system-ui, -apple-system, sans-serif;
       --mono: 'JetBrains Mono', 'Fira Code', monospace;
       --transition: 0.25s ease;
+      --gradient-start: #818cf8;
+      --gradient-end: #6366f1;
     }
     [data-theme="light"] {
       --bg: #f1f5f9;
@@ -30,6 +34,8 @@
       --text-dim: #475569;
       --border: #d1d9e6;
       --shadow: rgba(0,0,0,0.08);
+      --gradient-start: #6366f1;
+      --gradient-end: #4f46e5;
     }
     body {
       background: var(--bg);
@@ -39,6 +45,7 @@
       display: flex;
       flex-direction: column;
       transition: background var(--transition), color var(--transition);
+      overflow-x: hidden;
     }
 
     /* ----- loader: 24 candles in circle ----- */
@@ -52,6 +59,7 @@
       align-items: center;
       justify-content: center;
       transition: opacity 0.8s ease;
+      padding: 20px;
     }
     #loader.hidden {
       opacity: 0;
@@ -59,14 +67,14 @@
     }
     .candle-ring {
       position: relative;
-      width: 320px;
-      height: 320px;
-      margin-bottom: 2.5rem;
+      width: clamp(200px, 50vw, 320px);
+      height: clamp(200px, 50vw, 320px);
+      margin-bottom: 1.5rem;
     }
     .candle {
       position: absolute;
-      width: 28px;
-      height: 44px;
+      width: clamp(18px, 4.5vw, 28px);
+      height: clamp(30px, 7vw, 44px);
       background: #2d2a3e;
       border-radius: 6px 6px 2px 2px;
       box-shadow: inset 0 0 0 1px rgba(255,255,255,0.05);
@@ -77,9 +85,9 @@
     }
     .candle .flame {
       position: absolute;
-      top: -10px;
-      width: 10px;
-      height: 16px;
+      top: clamp(-8px, -2vw, -10px);
+      width: clamp(8px, 2vw, 10px);
+      height: clamp(12px, 3vw, 16px);
       background: #fbbf24;
       border-radius: 80% 20% 50% 50% / 60% 40% 60% 40%;
       opacity: 0;
@@ -106,7 +114,7 @@
     }
     #loader p {
       color: var(--text-dim);
-      font-size: 0.9rem;
+      font-size: clamp(0.7rem, 2vw, 0.9rem);
       letter-spacing: 0.3px;
       margin-top: 0.5rem;
       text-align: center;
@@ -133,6 +141,12 @@
       font-weight: 600;
       letter-spacing: -0.3px;
       color: var(--accent);
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+    }
+    h1 i {
+      font-size: 1.3rem;
     }
     .header-actions {
       display: flex;
@@ -144,8 +158,8 @@
       background: #22c55e;
       color: #000;
       font-weight: 600;
-      font-size: 0.75rem;
-      padding: 0.25rem 1rem;
+      font-size: 0.7rem;
+      padding: 0.3rem 1rem;
       border-radius: 30px;
       letter-spacing: 0.3px;
       text-transform: uppercase;
@@ -160,6 +174,9 @@
       cursor: pointer;
       transition: 0.2s;
       font-weight: 500;
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
     }
     .theme-toggle:hover {
       background: var(--border);
@@ -184,6 +201,9 @@
       border-bottom: 2px solid transparent;
       transition: 0.2s;
       font-family: var(--font);
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
     }
     .tab-btn.active {
       color: var(--accent);
@@ -233,19 +253,42 @@
       font-size: 1.1rem;
       font-weight: 500;
       color: var(--text-dim);
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
     }
     .panel-header .action-btn {
-      background: var(--accent);
+      background: linear-gradient(135deg, var(--gradient-start), var(--gradient-end));
       color: #fff;
       border: none;
-      padding: 0.4rem 1.2rem;
+      padding: 0.5rem 1.2rem;
       border-radius: 30px;
       font-size: 0.8rem;
       font-weight: 500;
       cursor: pointer;
-      transition: 0.2s;
+      transition: all 0.3s ease;
+      box-shadow: 0 4px 12px rgba(99, 102, 241, 0.25);
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+      letter-spacing: 0.3px;
+      text-transform: uppercase;
     }
-    .panel-header .action-btn:hover { background: var(--accent-hover); }
+    .panel-header .action-btn:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 6px 16px rgba(99, 102, 241, 0.35);
+    }
+    .panel-header .action-btn:active {
+      transform: translateY(0);
+    }
+    .panel-header .action-btn.secondary {
+      background: var(--surface);
+      color: var(--text);
+      box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+    }
+    .panel-header .action-btn.secondary:hover {
+      background: var(--border);
+    }
 
     pre {
       font-family: var(--mono);
@@ -295,13 +338,28 @@
     @media (max-width: 640px) {
       header { flex-direction: column; align-items: stretch; text-align: center; }
       .tabs { padding: 0 1rem; overflow-x: auto; flex-wrap: nowrap; }
-      .tab-btn { padding: 0.6rem 1rem; font-size: 0.85rem; white-space: nowrap; }
+      .tab-btn { padding: 0.6rem 1rem; font-size: 0.8rem; white-space: nowrap; }
+      .tab-btn i { font-size: 0.9rem; }
       .layout { padding: 1rem; }
-      .panel { padding: 1rem; min-height: 300px; }
-      pre, textarea { min-height: 200px; max-height: 50vh; }
-      .candle-ring { width: 240px; height: 240px; }
-      .candle { width: 22px; height: 36px; }
-      .candle .flame { width: 8px; height: 13px; top: -8px; }
+      .panel { padding: 1rem; min-height: 250px; }
+      pre, textarea { min-height: 200px; max-height: 50vh; font-size: 0.8rem; }
+      .panel-header .action-btn { padding: 0.4rem 0.8rem; font-size: 0.7rem; }
+      .panel-header h2 { font-size: 0.95rem; }
+    }
+    @media (max-width: 400px) {
+      .candle-ring {
+        width: 180px;
+        height: 180px;
+      }
+      .candle {
+        width: 16px;
+        height: 26px;
+      }
+      .candle .flame {
+        width: 6px;
+        height: 10px;
+        top: -6px;
+      }
     }
   </style>
 </head>
@@ -310,22 +368,28 @@
   <!-- LOADER: 24 свечей по кругу -->
   <div id="loader">
     <div class="candle-ring" id="candleRing"></div>
-    <p>Зажигаем свечи…</p>
+    <p>Зажигаем свечи ...</p>
   </div>
 
   <!-- HEADER -->
   <header>
-    <h1>🎂 birthday · compiler</h1>
+    <h1><i class="fas fa-cake-candles"></i> Birthday · Compiler</h1>
     <div class="header-actions">
-      <span class="status-badge" id="statusBadge">готов</span>
-      <button class="theme-toggle" onclick="toggleTheme()">🌓 тема</button>
+      <span class="status-badge" id="statusBadge">Готов</span>
+      <button class="theme-toggle" onclick="toggleTheme()">
+        <i class="fas fa-moon"></i> Тема
+      </button>
     </div>
   </header>
 
   <!-- TABS -->
   <div class="tabs">
-    <button class="tab-btn active" data-tab="tab1">📄 поздравление</button>
-    <button class="tab-btn" data-tab="tab2">⚙️ исходный код</button>
+    <button class="tab-btn active" data-tab="tab1">
+      <i class="fas fa-gift"></i> Поздравление
+    </button>
+    <button class="tab-btn" data-tab="tab2">
+      <i class="fas fa-code"></i> Исходный код
+    </button>
   </div>
 
   <!-- CONTENT -->
@@ -334,8 +398,10 @@
     <div class="tab-content active" id="tab1">
       <div class="panel">
         <div class="panel-header">
-          <h2>✨ сгенерированное пожелание</h2>
-          <button class="action-btn" onclick="refreshWish()">🔄 обновить</button>
+          <h2><i class="fas fa-star"></i> Сгенерированное пожелание</h2>
+          <button class="action-btn" onclick="refreshWish()">
+            <i class="fas fa-rotate"></i> Обновить
+          </button>
         </div>
         <pre id="outputDisplay"></pre>
       </div>
@@ -345,10 +411,14 @@
     <div class="tab-content" id="tab2">
       <div class="panel">
         <div class="panel-header">
-          <h2>✏️ редактируй и сохраняй</h2>
+          <h2><i class="fas fa-pen"></i> Редактируй и сохраняй</h2>
           <div style="display:flex; gap:0.6rem; flex-wrap:wrap;">
-            <button class="action-btn" onclick="saveCode()">💾 сохранить</button>
-            <button class="action-btn" style="background:#475569;" onclick="copyCode()">📋 копировать</button>
+            <button class="action-btn" onclick="saveCode()">
+              <i class="fas fa-floppy-disk"></i> Сохранить
+            </button>
+            <button class="action-btn secondary" onclick="copyCode()">
+              <i class="fas fa-copy"></i> Копировать
+            </button>
           </div>
         </div>
         <textarea id="codeEditor" spellcheck="false"></textarea>
@@ -356,7 +426,7 @@
     </div>
   </div>
 
-  <footer>с днём рождения · код с душой</footer>
+  <footer>С днём рождения · Код с душой</footer>
 
   <script>
     // ====== НАСТРОЙКИ ======
@@ -377,7 +447,6 @@
       const parts = birthDate.split('.');
       const birthYear = parseInt(parts[2], 10);
       const age = new Date().getFullYear() - birthYear;
-      // подставим возраст в первую фразу
       const phrase1 = birthday_phrases[0].replace('N', age);
       return `
   🎉 С Днём Рождения, ${name}! 🎉
@@ -410,7 +479,7 @@
     • с кучей новых фич (new_features: +1000)
 
   ---
-  status: THE_WISH_HAS_BEEN_SUCCESSFULLY_SENT
+  status: WISH_GENERATED_SUCCESSFULLY
       `.trim();
     }
 
@@ -448,24 +517,54 @@ if __name__ == "__main__":
     // ====== свечи по кругу ======
     const ring = document.getElementById('candleRing');
     const CANDLE_COUNT = 24;
-    const radius = 140; // радиус кольца
-    const center = 160;
     const candles = [];
 
-    for (let i = 0; i < CANDLE_COUNT; i++) {
-      const angle = (i / CANDLE_COUNT) * 2 * Math.PI - Math.PI / 2;
-      const x = center + radius * Math.cos(angle);
-      const y = center + radius * Math.sin(angle);
-
-      const div = document.createElement('div');
-      div.className = 'candle';
-      div.style.left = (x - 14) + 'px';
-      div.style.top = (y - 22) + 'px';
-      div.style.transform = `rotate(${angle + Math.PI/2}rad)`;
-      div.innerHTML = `<div class="wick"></div><div class="flame"></div>`;
-      ring.appendChild(div);
-      candles.push(div);
+    function getRingSize() {
+      const rect = ring.getBoundingClientRect();
+      return rect.width / 2;
     }
+
+    function createCandles() {
+      const size = getRingSize();
+      const center = size;
+      const radius = size - 20;
+      ring.innerHTML = '';
+      candles.length = 0;
+
+      for (let i = 0; i < CANDLE_COUNT; i++) {
+        const angle = (i / CANDLE_COUNT) * 2 * Math.PI - Math.PI / 2;
+        const x = center + radius * Math.cos(angle);
+        const y = center + radius * Math.sin(angle);
+
+        const div = document.createElement('div');
+        div.className = 'candle';
+        const candleWidth = Math.min(28, size * 0.09);
+        const candleHeight = candleWidth * 1.6;
+        div.style.width = candleWidth + 'px';
+        div.style.height = candleHeight + 'px';
+        div.style.left = (x - candleWidth/2) + 'px';
+        div.style.top = (y - candleHeight/2) + 'px';
+        div.style.transform = `rotate(${angle + Math.PI/2}rad)`;
+        div.innerHTML = `<div class="wick"></div><div class="flame"></div>`;
+        ring.appendChild(div);
+        candles.push(div);
+      }
+    }
+
+    // пересоздаем свечи при ресайзе
+    let resizeTimeout;
+    window.addEventListener('resize', () => {
+      clearTimeout(resizeTimeout);
+      resizeTimeout = setTimeout(() => {
+        if (!document.getElementById('loader').classList.contains('hidden')) {
+          createCandles();
+          // восстанавливаем состояние зажженных свечей
+          for (let i = 0; i < litIndex && i < candles.length; i++) {
+            candles[i].classList.add('lit');
+          }
+        }
+      }, 300);
+    });
 
     // ====== загрузка: зажигаем свечи по очереди ======
     let litIndex = 0;
@@ -473,28 +572,28 @@ if __name__ == "__main__":
 
     function lightNextCandle() {
       if (litIndex >= CANDLE_COUNT) {
-        // все свечи зажжены → пауза 1с → скрываем загрузчик
         if (!loaderHidden) {
           loaderHidden = true;
           setTimeout(() => {
             document.getElementById('loader').classList.add('hidden');
-            statusBadge.textContent = '✨ готово';
+            statusBadge.textContent = '✨ Готово';
           }, 1000);
         }
         return;
       }
-      candles[litIndex].classList.add('lit');
+      if (candles[litIndex]) {
+        candles[litIndex].classList.add('lit');
+      }
       litIndex++;
-      // случайная задержка между свечами (80–180 мс)
       const delay = 80 + Math.random() * 100;
       setTimeout(lightNextCandle, delay);
     }
 
     // ====== инициализация ======
     function init() {
+      createCandles();
       codeEditor.value = DEFAULT_CODE;
       refreshWish();
-      // старт анимации свечей
       setTimeout(lightNextCandle, 400);
     }
 
@@ -509,10 +608,10 @@ if __name__ == "__main__":
         const dateMatch = code.match(/["']birth_date["']\s*:\s*["']([^"']+)["']/i);
         if (dateMatch) date = dateMatch[1];
         outputDisplay.textContent = generateWish(name, date);
-        statusBadge.textContent = '✅ обновлено';
+        statusBadge.textContent = '✅ Обновлено';
       } catch (e) {
-        outputDisplay.textContent = '⚠️ ошибка генерации, проверь код';
-        statusBadge.textContent = '❌ ошибка';
+        outputDisplay.textContent = '⚠️ Ошибка генерации, проверь код';
+        statusBadge.textContent = '❌ Ошибка';
       }
     }
 
@@ -520,19 +619,19 @@ if __name__ == "__main__":
     function saveCode() {
       localStorage.setItem('birthday_code', codeEditor.value);
       refreshWish();
-      statusBadge.textContent = '💾 сохранено';
-      setTimeout(() => { statusBadge.textContent = '✨ готово'; }, 1500);
+      statusBadge.textContent = '💾 Сохранено';
+      setTimeout(() => { statusBadge.textContent = '✨ Готово'; }, 1500);
     }
 
     // ====== копировать ======
     function copyCode() {
       navigator.clipboard?.writeText(codeEditor.value).then(() => {
-        statusBadge.textContent = '📋 скопировано';
-        setTimeout(() => { statusBadge.textContent = '✨ готово'; }, 1200);
+        statusBadge.textContent = '📋 Скопировано';
+        setTimeout(() => { statusBadge.textContent = '✨ Готово'; }, 1200);
       }).catch(() => {
         codeEditor.select();
         document.execCommand('copy');
-        statusBadge.textContent = '📋 скопировано';
+        statusBadge.textContent = '📋 Скопировано';
       });
     }
 
