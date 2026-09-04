@@ -3,222 +3,578 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-  <title>Birthday Wish Generator</title>
+  <title>Birthday Wish · Compiler</title>
   <style>
+    /* ----- reset & variables ----- */
+    * { margin: 0; padding: 0; box-sizing: border-box; }
     :root {
-      --bg-color: #0f0f13;
-      --panel-bg: #1e1e2e;
-      --text-main: #e5e7eb;
-      --accent: #6366f1;
-      --code-bg: #000000;
-      --success: #22c55e;
-      --border: #2b2b3b;
-      --font-mono: 'Consolas', 'Monaco', 'Courier New', monospace;
-      --font-sans: system-ui, -apple-system, Segoe UI, Roboto, sans-serif;
+      --bg: #0b0b12;
+      --panel: #181825;
+      --surface: #1e1e2f;
+      --text: #e5e7eb;
+      --text-dim: #9ca3af;
+      --accent: #818cf8;
+      --accent-hover: #6366f1;
+      --border: #2f2f42;
+      --shadow: rgba(0,0,0,0.6);
+      --radius: 16px;
+      --font: 'Inter', system-ui, -apple-system, sans-serif;
+      --mono: 'JetBrains Mono', 'Fira Code', monospace;
+      --transition: 0.25s ease;
     }
-
     [data-theme="light"] {
-      --bg-color: #f3f4f6;
-      --panel-bg: #ffffff;
-      --text-main: #111827;
-      --accent: #4f46e5;
-      --code-bg: #f5f5f5;
-      --success: #16a34a;
-      --border: #e5e7eb;
+      --bg: #f1f5f9;
+      --panel: #ffffff;
+      --surface: #f8fafc;
+      --text: #0b0b12;
+      --text-dim: #475569;
+      --border: #d1d9e6;
+      --shadow: rgba(0,0,0,0.08);
+    }
+    body {
+      background: var(--bg);
+      color: var(--text);
+      font-family: var(--font);
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+      transition: background var(--transition), color var(--transition);
     }
 
-    body { margin: 0; background-color: var(--bg-color); color: var(--text-main); font-family: var(--font-sans); display: flex; flex-direction: column; min-height: 100vh; }
-    
-    header { padding: 1rem 2rem; border-bottom: 1px solid var(--border); display: flex; justify-content: space-between; align-items: center; position: sticky; top: 0; z-index: 100; background: rgba(15,15,19,0.9); backdrop-filter: blur(10px); }
-    h1 { margin: 0; font-size: 1.5rem; color: var(--accent); font-weight: 700; }
-    .status-bar { display: inline-block; padding: 0.3rem 0.8rem; background: var(--success); color: #000; border-radius: 6px; font-weight: 600; font-size: 0.9rem; }
-    .theme-switch { background: none; border: 1px solid var(--border); color: var(--text-main); padding: 0.5rem 1rem; border-radius: 20px; cursor: pointer; }
+    /* ----- loader: 24 candles ----- */
+    #loader {
+      position: fixed;
+      inset: 0;
+      background: var(--bg);
+      z-index: 999;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      transition: opacity 0.6s;
+    }
+    #loader.hidden {
+      opacity: 0;
+      pointer-events: none;
+    }
+    .candle-grid {
+      display: grid;
+      grid-template-columns: repeat(8, 1fr);
+      gap: 8px 14px;
+      margin-bottom: 2rem;
+    }
+    .candle {
+      width: 28px;
+      height: 44px;
+      background: #2d2a3e;
+      border-radius: 6px 6px 2px 2px;
+      position: relative;
+      box-shadow: inset 0 0 0 1px rgba(255,255,255,0.05);
+      transition: background 0.3s, box-shadow 0.3s;
+      display: flex;
+      justify-content: center;
+    }
+    .candle .flame {
+      position: absolute;
+      top: -10px;
+      width: 10px;
+      height: 16px;
+      background: #fbbf24;
+      border-radius: 80% 20% 50% 50% / 60% 40% 60% 40%;
+      opacity: 0;
+      transform: scale(0.6);
+      transition: opacity 0.5s, transform 0.4s;
+      box-shadow: 0 0 18px #f59e0b;
+      filter: blur(0.4px);
+    }
+    .candle.lit {
+      background: #3b3352;
+      box-shadow: inset 0 0 0 1px rgba(255,215,100,0.2);
+    }
+    .candle.lit .flame {
+      opacity: 1;
+      transform: scale(1);
+    }
+    .candle .wick {
+      position: absolute;
+      top: -3px;
+      width: 2px;
+      height: 6px;
+      background: #4a3a2a;
+      border-radius: 1px;
+    }
+    #loader p {
+      color: var(--text-dim);
+      font-size: 0.9rem;
+      letter-spacing: 0.3px;
+      margin-top: 0.5rem;
+    }
+    .progress-track {
+      width: 260px;
+      height: 4px;
+      background: var(--border);
+      border-radius: 4px;
+      overflow: hidden;
+      margin-top: 0.5rem;
+    }
+    .progress-fill {
+      height: 100%;
+      width: 0%;
+      background: var(--accent);
+      border-radius: 4px;
+      transition: width 0.15s linear;
+    }
 
-    .layout { display: grid; grid-template-columns: 1fr 1fr; gap: 2rem; padding: 2rem; flex: 1; }
-    @media (max-width: 768px) { .layout { grid-template-columns: 1fr; } header { flex-direction: column; gap: 1rem; text-align: center; } }
+    /* ----- header ----- */
+    header {
+      padding: 1rem 2rem;
+      border-bottom: 1px solid var(--border);
+      display: flex;
+      flex-wrap: wrap;
+      align-items: center;
+      justify-content: space-between;
+      gap: 1rem;
+      background: var(--panel);
+      backdrop-filter: blur(8px);
+      position: sticky;
+      top: 0;
+      z-index: 50;
+      transition: background var(--transition), border var(--transition);
+    }
+    h1 {
+      font-size: 1.4rem;
+      font-weight: 600;
+      letter-spacing: -0.3px;
+      color: var(--accent);
+    }
+    .header-actions {
+      display: flex;
+      align-items: center;
+      gap: 1rem;
+      flex-wrap: wrap;
+    }
+    .status-badge {
+      background: #22c55e;
+      color: #000;
+      font-weight: 600;
+      font-size: 0.75rem;
+      padding: 0.25rem 1rem;
+      border-radius: 30px;
+      letter-spacing: 0.3px;
+      text-transform: uppercase;
+    }
+    .theme-toggle {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      color: var(--text);
+      padding: 0.4rem 1rem;
+      border-radius: 40px;
+      font-size: 0.8rem;
+      cursor: pointer;
+      transition: 0.2s;
+      font-weight: 500;
+    }
+    .theme-toggle:hover {
+      background: var(--border);
+    }
 
-    .panel { background: var(--panel-bg); padding: 1.5rem; border-radius: 12px; box-shadow: 0 10px 15px rgba(0,0,0,0.1); border: 1px solid var(--border); height: 80%; display: flex; flex-direction: column; }
+    /* ----- tabs ----- */
+    .tabs {
+      display: flex;
+      gap: 0.25rem;
+      padding: 0 2rem;
+      margin-top: 1.5rem;
+      border-bottom: 1px solid var(--border);
+    }
+    .tab-btn {
+      background: transparent;
+      border: none;
+      padding: 0.7rem 1.8rem;
+      font-weight: 500;
+      font-size: 0.95rem;
+      color: var(--text-dim);
+      cursor: pointer;
+      border-bottom: 2px solid transparent;
+      transition: 0.2s;
+      font-family: var(--font);
+    }
+    .tab-btn.active {
+      color: var(--accent);
+      border-bottom-color: var(--accent);
+    }
+    .tab-btn:hover { color: var(--text); }
 
-    /* Loader */
-    .loader-screen { position: fixed; inset: 0; background: var(--bg-color); z-index: 999; display: flex; flex-direction: column; align-items: center; justify-content: center; color: var(--text-main); }
-    .terminal-text { font-family: var(--font-mono); font-size: 1.2rem; margin-bottom: 1rem; }
-    .progress-bar-container { width: 300px; height: 6px; background: var(--border); border-radius: 3px; overflow: hidden; margin-top: 10px; }
-    .progress-bar { height: 100%; width: 0%; background: var(--accent); transition: width 0.1s; }
+    /* ----- panels ----- */
+    .layout {
+      padding: 1.5rem 2rem 2rem;
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+    }
+    .tab-content {
+      display: none;
+      flex-direction: column;
+      gap: 1rem;
+      animation: fade 0.25s ease;
+    }
+    .tab-content.active { display: flex; }
+    @keyframes fade { from { opacity: 0.4; } to { opacity: 1; } }
 
-    pre { margin: 0; white-space: pre-wrap; line-height: 1.6; color: var(--text-main); flex: 1; overflow-y: auto; font-family: var(--font-mono); }
-    button.copy-btn { margin-top: 1rem; padding: 0.75rem 1.5rem; background: var(--accent); color: white; border: none; border-radius: 6px; cursor: pointer; font-weight: 600; align-self: flex-end; }
-    button.copy-btn:hover { background: #4338ca; }
+    .panel {
+      background: var(--panel);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      padding: 1.5rem;
+      box-shadow: 0 8px 20px var(--shadow);
+      transition: background var(--transition), border var(--transition);
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+    }
+    .panel-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 1rem;
+      flex-wrap: wrap;
+      gap: 0.5rem;
+    }
+    .panel-header h2 {
+      font-size: 1.1rem;
+      font-weight: 500;
+      color: var(--text-dim);
+    }
+    .panel-header .action-btn {
+      background: var(--accent);
+      color: #fff;
+      border: none;
+      padding: 0.4rem 1.2rem;
+      border-radius: 30px;
+      font-size: 0.8rem;
+      font-weight: 500;
+      cursor: pointer;
+      transition: 0.2s;
+    }
+    .panel-header .action-btn:hover { background: var(--accent-hover); }
 
-    footer { padding: 1.5rem 2rem; border-top: 1px solid var(--border); text-align: center; font-size: 0.9rem; color: #9ca3af; }
+    pre {
+      font-family: var(--mono);
+      font-size: 0.9rem;
+      line-height: 1.7;
+      white-space: pre-wrap;
+      word-break: break-word;
+      background: var(--surface);
+      padding: 1rem;
+      border-radius: 10px;
+      border: 1px solid var(--border);
+      flex: 1;
+      overflow-y: auto;
+      max-height: 60vh;
+      min-height: 200px;
+      transition: background var(--transition), border var(--transition);
+    }
+    textarea {
+      font-family: var(--mono);
+      font-size: 0.9rem;
+      line-height: 1.7;
+      background: var(--surface);
+      color: var(--text);
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      padding: 1rem;
+      resize: vertical;
+      flex: 1;
+      min-height: 200px;
+      max-height: 60vh;
+      outline: none;
+      transition: 0.2s;
+    }
+    textarea:focus { border-color: var(--accent); }
+
+    footer {
+      border-top: 1px solid var(--border);
+      padding: 1rem 2rem;
+      text-align: center;
+      font-size: 0.8rem;
+      color: var(--text-dim);
+      background: var(--panel);
+      transition: background var(--transition);
+    }
+
+    /* responsive */
+    @media (max-width: 640px) {
+      header { flex-direction: column; align-items: stretch; text-align: center; }
+      .tabs { padding: 0 1rem; overflow-x: auto; flex-wrap: nowrap; }
+      .tab-btn { padding: 0.6rem 1rem; font-size: 0.85rem; white-space: nowrap; }
+      .layout { padding: 1rem; }
+      .panel { padding: 1rem; }
+      .candle-grid { gap: 4px 8px; }
+      .candle { width: 22px; height: 36px; }
+      .candle .flame { width: 8px; height: 13px; top: -8px; }
+    }
   </style>
 </head>
 <body>
 
-  <!-- Экран загрузки -->
-  <div id="loader" class="loader-screen">
-    <div class="terminal-text">INITIALIZING BIRTHDAY PROTOCOL...</div>
-    <div class="progress-bar-container">
-      <div id="progress" class="progress-bar"></div>
-    </div>
-    <p style="font-size: 0.8rem; color: #6b7280; margin-top: 1rem;">Загрузка модулей... (это займет всего пару секунд)</p>
+  <!-- LOADER: 24 свечей -->
+  <div id="loader">
+    <div class="candle-grid" id="candleGrid"></div>
+    <p>зажигаем свечи …</p>
+    <div class="progress-track"><div class="progress-fill" id="progressFill"></div></div>
   </div>
 
+  <!-- HEADER -->
   <header>
-    <h1>BIRTHDAY_WISH_GENERATOR.py</h1>
-    <div style="display: flex; gap: 1rem; align-items: center;">
-      <span class="status-bar" id="status">STATUS: IDLE</span>
-      <button class="theme-switch" onclick="toggleTheme()">🌙 Dark / ☀️ Light</button>
+    <h1>🎂 birthday · compiler</h1>
+    <div class="header-actions">
+      <span class="status-badge" id="statusBadge">готов</span>
+      <button class="theme-toggle" onclick="toggleTheme()">🌓 тема</button>
     </div>
   </header>
 
-  <div class="layout" id="content-area" style="opacity: 0; transition: opacity 0.5s;">
-    <!-- Результат -->
-    <div class="panel">
-      <h2>Compiled Output</h2>
-      <hr style="border: 0; border-top: 1px solid var(--border); margin: 1rem 0;">
-      <pre id="output-log">Waiting for compilation...</pre>
+  <!-- TABS -->
+  <div class="tabs">
+    <button class="tab-btn active" data-tab="tab1">📄 поздравление</button>
+    <button class="tab-btn" data-tab="tab2">⚙️ исходный код</button>
+  </div>
+
+  <!-- CONTENT -->
+  <div class="layout">
+    <!-- вкладка 1: вывод -->
+    <div class="tab-content active" id="tab1">
+      <div class="panel">
+        <div class="panel-header">
+          <h2>✨ сгенерированное пожелание</h2>
+          <button class="action-btn" onclick="refreshWish()">🔄 обновить</button>
+        </div>
+        <pre id="outputDisplay"></pre>
+      </div>
     </div>
 
-    <!-- Код -->
-    <div class="panel">
-      <h2>Source Code</h2>
-      <hr style="border: 0; border-top: 1px solid var(--border); margin: 1rem 0;">
-      <pre id="source-code"></pre>
-      <button class="copy-btn" onclick="copyCode()">📋 Copy Code</button>
+    <!-- вкладка 2: редактор кода -->
+    <div class="tab-content" id="tab2">
+      <div class="panel">
+        <div class="panel-header">
+          <h2>✏️ редактируй и сохраняй</h2>
+          <div style="display:flex; gap:0.6rem; flex-wrap:wrap;">
+            <button class="action-btn" onclick="saveCode()">💾 сохранить</button>
+            <button class="action-btn" style="background:#475569;" onclick="copyCode()">📋 копировать</button>
+          </div>
+        </div>
+        <textarea id="codeEditor" spellcheck="false"></textarea>
+      </div>
     </div>
   </div>
 
-  <footer>Generated by Alice AI | Emulated Python Engine</footer>
+  <footer>с днём рождения · код с душой</footer>
 
   <script>
-    // === НАСТРОЙКИ ===
-    const USER_NAME = "[ИМЯ_ДРУГА]"; // <--- ВПИШИ ИМЯ СЮДА ОБЯЗАТЕЛЬНО
-    const BIRTH_DATE_STRING = "04.09.2002";
+    // ====== НАСТРОЙКИ ======
+    const USER_NAME = "Алексей";        // ← впиши имя
+    const BIRTH_DATE = "04.09.2002";
 
-    // 1. Формируем "Исходный код" (для красоты)
-    const pythonCodeString = `
-# =============================================================================
-# BIRTHDAY_WISH_GENERATOR.py
-# Version: 4.2.9-alpha
-# Target: ${USER_NAME}
-# Release Date: 04.09.2022
-# Dependencies: humor_engine, colleague_module, birthday_core
-# =============================================================================
+    // ====== ГЕНЕРАТОР ПОЗДРАВЛЕНИЯ ======
+    function generateWish(name, birthDate) {
+      const parts = birthDate.split('.');
+      const birthYear = parseInt(parts[2], 10);
+      const age = new Date().getFullYear() - birthYear;
+      return `
+  🎉 С Днём Рождения, ${name}! 🎉
+
+  Сегодня твой уровень прокачан до ${age} лет.
+  Статус: ONLINE · критические ошибки отсутствуют.
+
+  Ты — тот коллега, чей код (и жизнь) не требует рефакторинга:
+    • дедлайн? → закрытый тикет с запасом времени.
+    • проблема? → мелкий баг, исправленный одной шуткой.
+    • идея? → идеальный промпт → SoTA-результат.
+    • поддержка? → стабильный микросервис, never down.
+
+  Пожелания в формате JSON:
+  {
+    "goals": ["pass_validation_on_first_try", "merge_approved_instantly"],
+    "luck": { "type": "perpetual", "api_key": "UNLIMITED" },
+    "bugs": { "severity": "cosmetic", "fix_time": "0.5s" },
+    "coffee": { "level": "infinite", "temperature": "perfect" }
+  }
+
+  Пусть этот год будет как успешный коммит:
+    • без конфликтов (merge conflicts: 0)
+    • с чистым кодом (style_guide: passed)
+    • с кучей новых фич (new_features: +1000)
+
+  ---
+  status: WISH_GENERATED_SUCCESSFULLY
+      `.trim();
+    }
+
+    const DEFAULT_CODE = `# birthday_wish_generator.py
+# версия 4.2.9 · target: ${USER_NAME}
 
 import datetime
 
-class Config:
-    BIRTH_DATE = "${BIRTH_DATE_STRING}"
-    USER_NAME = "${USER_NAME}"
+CONFIG = {
+    "birth_date": "${BIRTH_DATE}",
+    "user_name": "${USER_NAME}"
+}
 
 def generate_wish():
-    # ... логика скрыта в модулях ...
+    # логика скрыта в модулях, но ты можешь её дополнить
     return "Результат сгенерирован"
 
 if __name__ == "__main__":
     print(generate_wish())
-    `.trim();
+    `;
 
-    document.getElementById('source-code').textContent = pythonCodeString;
+    // ====== DOM ======
+    const outputDisplay = document.getElementById('outputDisplay');
+    const codeEditor = document.getElementById('codeEditor');
+    const statusBadge = document.getElementById('statusBadge');
+    const progressFill = document.getElementById('progressFill');
 
-    function toggleTheme() {
-      document.body.toggleAttribute('data-theme');
+    // ====== свечи ======
+    const candleGrid = document.getElementById('candleGrid');
+    const CANDLE_COUNT = 24;
+    let litCount = 0;
+    for (let i = 0; i < CANDLE_COUNT; i++) {
+      const div = document.createElement('div');
+      div.className = 'candle';
+      div.innerHTML = `<div class="wick"></div><div class="flame"></div>`;
+      div.dataset.index = i;
+      candleGrid.appendChild(div);
+    }
+    const candles = document.querySelectorAll('.candle');
+
+    function lightCandles(progress) {
+      // progress 0..1
+      const target = Math.min(CANDLE_COUNT, Math.floor(progress * CANDLE_COUNT));
+      for (let i = 0; i < candles.length; i++) {
+        if (i < target) candles[i].classList.add('lit');
+        else candles[i].classList.remove('lit');
+      }
     }
 
-    // 2. ЭМУЛЯЦИЯ "КОМПИЛЯЦИИ" НА JS (вместо тяжелого Pyodide)
-    async function fakeCompile() {
-      const log = document.getElementById('output-log');
-      const status = document.getElementById('status');
-      
-      log.textContent = "Initializing birthday protocol for " + USER_NAME + "...\n";
-      await sleep(500);
-      log.textContent += "Loading profile data... OK.\n";
-      await sleep(400);
-      log.textContent += "Parsing birth date: " + BIRTH_DATE_STRING + " -> Calculating experience points...\n";
-      await sleep(600);
-
-      // Расчет возраста на JS
-      const parts = BIRTH_DATE_STRING.split('.');
-      const birthYear = parseInt(parts[2]);
-      const currentYear = new Date().getFullYear();
-      const age = currentYear - birthYear;
-
-      log.textContent += `\n🎉 С Днём Рождения, ${USER_NAME}! 🎉\n`;
-      log.textContent += `Сегодня твой уровень прокачан до ${age} лет! XP получен.\n`;
-      log.textContent += "Статус системы: ONLINE. Критических ошибок не обнаружено.\n\n";
-      
-      await sleep(300);
-      
-      log.textContent += "Ты — тот самый коллега, чей код (и жизнь) не требует рефакторинга:\n";
-      log.textContent += "   • Дедлайн? Это просто успешно закрытый тикет с запасом времени.\n";
-      log.textContent += "   • Проблема? Это мелкий баг, который исправляется одной шуткой.\n";
-      log.textContent += "   • Идея? Это идеальный промпт, который сразу выдает SoTA-результат.\n";
-      log.textContent += "   • Поддержка? Это стабильный микросервис, который никогда не падает.\n\n";
-      
-      await sleep(400);
-
-      log.textContent += "Пожелания в формате JSON:\n";
-      log.textContent += "{\n";
-      log.textContent += '  "goals": ["pass_validation_on_first_try", "merge_request_approved_instantly"],\n';
-      log.textContent += '  "luck": {"type": "perpetual", "api_key": "UNLIMITED"},\n';
-      log.textContent += '  "bugs": {"severity": "cosmetic", "fix_time": "0.5 seconds"},\n';
-      log.textContent += '  "coffee": {"level": "infinite", "temperature": "perfect"}\n';
-      log.textContent += "}\n\n";
-
-      await sleep(400);
-
-      log.textContent += "Пусть этот год будет как успешный коммит:\n";
-      log.textContent += "- Без конфликтов (merge conflicts: 0)\n";
-      log.textContent += "- С чистым кодом (style_guide: passed)\n";
-      log.textContent += "- И с большим количеством фич (new_features: +1000)\n\n";
-      
-      await sleep(200);
-
-      log.textContent += "---\nStatus: WISH_GENERATED_SUCCESSFULLY\n";
-      status.textContent = "STATUS: COMPILATION_OK";
-      status.style.background = "#16a34a";
+    // ====== загрузка ======
+    let progressValue = 0;
+    function updateProgress() {
+      if (progressValue >= 1) return;
+      progressValue += 0.02 + Math.random() * 0.04;
+      if (progressValue > 1) progressValue = 1;
+      progressFill.style.width = (progressValue * 100) + '%';
+      lightCandles(progressValue);
+      if (progressValue < 1) requestAnimationFrame(updateProgress);
     }
 
-    // Функция задержки для анимации
-    function sleep(ms) {
-      return new Promise(resolve => setTimeout(resolve, ms));
+    // ====== инициализация ======
+    function init() {
+      // код в редактор
+      codeEditor.value = DEFAULT_CODE;
+      // генерируем пожелание
+      refreshWish();
+
+      // запускаем прогресс
+      updateProgress();
+
+      // скрываем загрузчик через 2.5 сек (имитация)
+      setTimeout(() => {
+        document.getElementById('loader').classList.add('hidden');
+        statusBadge.textContent = '✨ готово';
+      }, 2800);
     }
 
-    // Анимация прогресс-бара
-    function startProgressBar() {
-      const bar = document.getElementById('progress');
-      let width = 0;
-      const interval = setInterval(() => {
-        if (width >= 100) {
-          clearInterval(interval);
-        } else {
-          width += Math.random() * 8;
-          if (width > 100) width = 100;
-          bar.style.width = width + '%';
-        }
-      }, 50);
+    // ====== обновить пожелание (из кода) ======
+    function refreshWish() {
+      try {
+        // эмуляция: из кода берём имя и дату (можно парсить, но оставим простоту)
+        const code = codeEditor.value;
+        // попробуем вытащить user_name и birth_date из кода (примитивно)
+        let name = USER_NAME;
+        let date = BIRTH_DATE;
+        const nameMatch = code.match(/["']user_name["']\s*:\s*["']([^"']+)["']/i);
+        if (nameMatch) name = nameMatch[1];
+        const dateMatch = code.match(/["']birth_date["']\s*:\s*["']([^"']+)["']/i);
+        if (dateMatch) date = dateMatch[1];
+        outputDisplay.textContent = generateWish(name, date);
+        statusBadge.textContent = '✅ обновлено';
+      } catch (e) {
+        outputDisplay.textContent = '⚠️ ошибка генерации, проверь код';
+        statusBadge.textContent = '❌ ошибка';
+      }
     }
 
-    function hideLoader() {
-      const loader = document.getElementById('loader');
-      const content = document.getElementById('content-area');
-      loader.style.display = 'none';
-      content.style.opacity = '1';
+    // ====== сохранить ======
+    function saveCode() {
+      // просто сохраняем в localStorage и обновляем вывод
+      localStorage.setItem('birthday_code', codeEditor.value);
+      refreshWish();
+      statusBadge.textContent = '💾 сохранено';
+      setTimeout(() => { statusBadge.textContent = '✨ готово'; }, 1500);
     }
 
-    async function init() {
-      startProgressBar();
-      await fakeCompile();
-      hideLoader();
-    }
-
-    init();
-
+    // ====== копировать ======
     function copyCode() {
-      navigator.clipboard.writeText(pythonCodeString).then(() => {
-        alert("Код скопирован!");
+      navigator.clipboard?.writeText(codeEditor.value).then(() => {
+        statusBadge.textContent = '📋 скопировано';
+        setTimeout(() => { statusBadge.textContent = '✨ готово'; }, 1200);
+      }).catch(() => {
+        // fallback
+        codeEditor.select();
+        document.execCommand('copy');
+        statusBadge.textContent = '📋 скопировано';
       });
     }
+
+    // ====== тема ======
+    function toggleTheme() {
+      const current = document.documentElement.getAttribute('data-theme');
+      document.documentElement.setAttribute('data-theme', current === 'light' ? '' : 'light');
+    }
+
+    // ====== табы ======
+    document.querySelectorAll('.tab-btn').forEach(btn => {
+      btn.addEventListener('click', function() {
+        document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+        document.querySelectorAll('.tab-content').forEach(c => c.classList.remove('active'));
+        this.classList.add('active');
+        document.getElementById(this.dataset.tab).classList.add('active');
+        // при переключении на вкладку кода — подсветим
+        if (this.dataset.tab === 'tab2') {
+          codeEditor.focus();
+        }
+      });
+    });
+
+    // автосохранение при изменении кода (опционально)
+    codeEditor.addEventListener('input', () => {
+      // можно автосохранять, но оставим ручное
+    });
+
+    // загружаем сохранённый код, если есть
+    const saved = localStorage.getItem('birthday_code');
+    if (saved) codeEditor.value = saved;
+
+    // запуск
+    init();
+
+    // вытаскиваем функции в глобалку для кнопок
+    window.refreshWish = refreshWish;
+    window.saveCode = saveCode;
+    window.copyCode = copyCode;
+    window.toggleTheme = toggleTheme;
+
+    // дополнительный фикс: при загрузке тема из localStorage
+    (function loadTheme() {
+      const stored = localStorage.getItem('theme');
+      if (stored === 'light') document.documentElement.setAttribute('data-theme', 'light');
+    })();
+    // сохраняем тему при переключении
+    const origToggle = toggleTheme;
+    toggleTheme = function() {
+      origToggle();
+      const theme = document.documentElement.getAttribute('data-theme') || '';
+      localStorage.setItem('theme', theme);
+    };
+    window.toggleTheme = toggleTheme;
   </script>
 </body>
 </html>
