@@ -3,15 +3,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-  <title>BIRTHDAY_WISH_GENERATOR</title>
-  <!-- Подключаем Pyodide (Python в браузере) -->
-  <script type="importmap">
-    {
-      "imports": {
-        "pyodide": "https://cdn.jsdelivr.net/pyodide/v0.26.0/full/pyodide.js"
-      }
-    }
-  </script>
+  <title>Birthday Wish Generator</title>
   <style>
     :root {
       --bg-color: #0f0f13;
@@ -25,7 +17,6 @@
       --font-sans: system-ui, -apple-system, Segoe UI, Roboto, sans-serif;
     }
 
-    /* Светлая тема */
     [data-theme="light"] {
       --bg-color: #f3f4f6;
       --panel-bg: #ffffff;
@@ -36,171 +27,29 @@
       --border: #e5e7eb;
     }
 
-    body {
-      margin: 0;
-      padding: 0;
-      background-color: var(--bg-color);
-      color: var(--text-main);
-      font-family: var(--font-sans);
-      display: flex;
-      flex-direction: column;
-      min-height: 100vh;
-      overflow-x: hidden;
-    }
-
-    header {
-      padding: 1rem 2rem;
-      border-bottom: 1px solid var(--border);
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-      background: rgba(15, 15, 19, 0.8);
-      backdrop-filter: blur(10px);
-      position: sticky;
-      top: 0;
-      z-index: 100;
-    }
-
+    body { margin: 0; background-color: var(--bg-color); color: var(--text-main); font-family: var(--font-sans); display: flex; flex-direction: column; min-height: 100vh; }
+    
+    header { padding: 1rem 2rem; border-bottom: 1px solid var(--border); display: flex; justify-content: space-between; align-items: center; position: sticky; top: 0; z-index: 100; background: rgba(15,15,19,0.9); backdrop-filter: blur(10px); }
     h1 { margin: 0; font-size: 1.5rem; color: var(--accent); font-weight: 700; }
-    
-    .status-bar {
-      display: inline-block;
-      padding: 0.3rem 0.8rem;
-      background: var(--success);
-      color: #000;
-      border-radius: 6px;
-      font-weight: 600;
-      font-size: 0.9rem;
-      box-shadow: 0 4px 6px rgba(0,0,0,0.2);
-    }
+    .status-bar { display: inline-block; padding: 0.3rem 0.8rem; background: var(--success); color: #000; border-radius: 6px; font-weight: 600; font-size: 0.9rem; }
+    .theme-switch { background: none; border: 1px solid var(--border); color: var(--text-main); padding: 0.5rem 1rem; border-radius: 20px; cursor: pointer; }
 
-    .theme-switch {
-      background: none;
-      border: 1px solid var(--border);
-      color: var(--text-main);
-      padding: 0.5rem 1rem;
-      border-radius: 20px;
-      cursor: pointer;
-      transition: all 0.3s;
-    }
-    .theme-switch:hover { background: var(--panel-bg); }
+    .layout { display: grid; grid-template-columns: 1fr 1fr; gap: 2rem; padding: 2rem; flex: 1; }
+    @media (max-width: 768px) { .layout { grid-template-columns: 1fr; } header { flex-direction: column; gap: 1rem; text-align: center; } }
 
-    .layout {
-      display: grid;
-      grid-template-columns: 1fr 1fr;
-      gap: 2rem;
-      padding: 2rem;
-      flex: 1;
-    }
+    .panel { background: var(--panel-bg); padding: 1.5rem; border-radius: 12px; box-shadow: 0 10px 15px rgba(0,0,0,0.1); border: 1px solid var(--border); height: 80%; display: flex; flex-direction: column; }
 
-    @media (max-width: 768px) {
-      .layout { grid-template-columns: 1fr; }
-      .layout > * { padding: 1rem; }
-      header { flex-direction: column; gap: 1rem; text-align: center; }
-    }
+    /* Loader */
+    .loader-screen { position: fixed; inset: 0; background: var(--bg-color); z-index: 999; display: flex; flex-direction: column; align-items: center; justify-content: center; color: var(--text-main); }
+    .terminal-text { font-family: var(--font-mono); font-size: 1.2rem; margin-bottom: 1rem; }
+    .progress-bar-container { width: 300px; height: 6px; background: var(--border); border-radius: 3px; overflow: hidden; margin-top: 10px; }
+    .progress-bar { height: 100%; width: 0%; background: var(--accent); transition: width 0.1s; }
 
-    .panel {
-      background: var(--panel-bg);
-      padding: 1.5rem;
-      border-radius: 12px;
-      box-shadow: 0 10px 15px rgba(0,0,0,0.1);
-      border: 1px solid var(--border);
-      height: 80%; /* Для выравнивания */
-      display: flex;
-      flex-direction: column;
-    }
+    pre { margin: 0; white-space: pre-wrap; line-height: 1.6; color: var(--text-main); flex: 1; overflow-y: auto; font-family: var(--font-mono); }
+    button.copy-btn { margin-top: 1rem; padding: 0.75rem 1.5rem; background: var(--accent); color: white; border: none; border-radius: 6px; cursor: pointer; font-weight: 600; align-self: flex-end; }
+    button.copy-btn:hover { background: #4338ca; }
 
-    /* Анимация загрузки */
-    .loader-screen {
-      position: fixed;
-      inset: 0;
-      background: var(--bg-color);
-      z-index: 999;
-      display: flex;
-      flex-direction: column;
-      align-items: center;
-      justify-content: center;
-      color: var(--text-main);
-    }
-    .terminal-text {
-      font-family: var(--font-mono);
-      font-size: 1.2rem;
-      margin-bottom: 1rem;
-    }
-    .progress-bar-container {
-      width: 300px;
-      height: 6px;
-      background: var(--border);
-      border-radius: 3px;
-      overflow: hidden;
-    }
-    .progress-bar {
-      height: 100%;
-      width: 0%;
-      background: var(--accent);
-      transition: width 0.1s;
-    }
-
-    /* Блоки контента */
-    .output-block pre {
-      margin: 0;
-      white-space: pre-wrap;
-      line-height: 1.6;
-      color: var(--text-main);
-      flex: 1;
-      overflow-y: auto;
-      font-family: var(--font-mono);
-    }
-
-    .code-block {
-      position: relative;
-      flex: 1;
-      display: flex;
-      flex-direction: column;
-      overflow: hidden;
-    }
-    
-    pre.code-content {
-      margin: 0;
-      overflow: auto;
-      padding: 1rem;
-      background: var(--code-bg);
-      border-radius: 8px;
-      border: 1px solid var(--border);
-      font-family: var(--font-mono);
-      font-size: 0.85rem;
-      flex: 1;
-      word-wrap: break-word;
-    }
-
-    button.copy-btn {
-      margin-top: 1rem;
-      padding: 0.75rem 1.5rem;
-      background: var(--accent);
-      color: white;
-      border: none;
-      border-radius: 6px;
-      cursor: pointer;
-      font-weight: 600;
-      transition: transform 0.1s, background 0.2s;
-      align-self: flex-end;
-    }
-    button.copy-btn:hover { background: #4338ca; transform: scale(1.02); }
-    button.copy-btn:active { transform: scale(0.98); }
-
-    footer {
-      padding: 1.5rem 2rem;
-      border-top: 1px solid var(--border);
-      text-align: center;
-      font-size: 0.9rem;
-      color: #9ca3af;
-    }
-
-    /* Скроллбар */
-    ::-webkit-scrollbar { width: 8px; }
-    ::-webkit-scrollbar-track { background: var(--bg-color); }
-    ::-webkit-scrollbar-thumb { background: var(--border); border-radius: 4px; }
-    ::-webkit-scrollbar-thumb:hover { background: var(--accent); }
+    footer { padding: 1.5rem 2rem; border-top: 1px solid var(--border); text-align: center; font-size: 0.9rem; color: #9ca3af; }
   </style>
 </head>
 <body>
@@ -211,6 +60,7 @@
     <div class="progress-bar-container">
       <div id="progress" class="progress-bar"></div>
     </div>
+    <p style="font-size: 0.8rem; color: #6b7280; margin-top: 1rem;">Загрузка модулей... (это займет всего пару секунд)</p>
   </div>
 
   <header>
@@ -222,166 +72,153 @@
   </header>
 
   <div class="layout" id="content-area" style="opacity: 0; transition: opacity 0.5s;">
-    <!-- Результат компиляции -->
+    <!-- Результат -->
     <div class="panel">
       <h2>Compiled Output</h2>
       <hr style="border: 0; border-top: 1px solid var(--border); margin: 1rem 0;">
-      <div class="output-block">
-        <pre id="output-log">
-Waiting for compilation...
-        </pre>
-      </div>
+      <pre id="output-log">Waiting for compilation...</pre>
     </div>
 
-    <!-- Исходный код -->
-    <div class="panel code-block">
+    <!-- Код -->
+    <div class="panel">
       <h2>Source Code</h2>
       <hr style="border: 0; border-top: 1px solid var(--border); margin: 1rem 0;">
-      <pre class="code-content" id="source-code">
-# Loading Python engine...
-      </pre>
+      <pre id="source-code"></pre>
       <button class="copy-btn" onclick="copyCode()">📋 Copy Code</button>
     </div>
   </div>
 
-  <footer>
-    Generated by Alice AI Module v4.2 | Powered by Pyodide
-  </footer>
+  <footer>Generated by Alice AI | Emulated Python Engine</footer>
 
   <script>
-    // --- КОНФИГУРАЦИЯ ---
-    const USER_NAME = "[ИМЯ_ДРУГА]"; // <--- ЗАМЕНИ ЭТО НА ИМЯ ДРУГА!
+    // === НАСТРОЙКИ ===
+    const USER_NAME = "[ИМЯ_ДРУГА]"; // <--- ВПИШИ ИМЯ СЮДА ОБЯЗАТЕЛЬНО
     const BIRTH_DATE_STRING = "04.09.2002";
-    
-    // Исходный код Python как строка (чтобы показать его в блоке кода)
-    const pythonSourceCode = `
+
+    // 1. Формируем "Исходный код" (для красоты)
+    const pythonCodeString = `
 # =============================================================================
 # BIRTHDAY_WISH_GENERATOR.py
 # Version: 4.2.9-alpha
 # Target: ${USER_NAME}
-# Release Date: 04.09.2022 (dynamic update from user input: ${BIRTH_DATE_STRING})
+# Release Date: 04.09.2022
 # Dependencies: humor_engine, colleague_module, birthday_core
 # =============================================================================
 
 import datetime
-import sys
 
-# --- CONFIGURATION BLOCK ---
 class Config:
     BIRTH_DATE = "${BIRTH_DATE_STRING}"
     USER_NAME = "${USER_NAME}"
-    WISH_TYPE = "friend_colleague"
-    TONE = "tech_humor"
 
-# --- DATASETS & LIBRARIES ---
-tech_metaphors = [
-    ("дедлайн", "успешно закрытый тикет с запасом времени"),
-    ("проблема", "мелкий баг, который исправляется одной шуткой"),
-    ("идея", "идеальный промпт, который сразу выдает SoTA-результат"),
-    ("поддержка", "стабильный микросервис, который никогда не падает")
-]
-
-# --- CORE LOGIC ---
 def generate_wish():
-    print(f"Initializing birthday protocol for {Config.USER_NAME}...")
-    print(f"Loading profile data... OK.")
-    print(f"Parsing birth date: {Config.BIRTH_DATE} -> Calculating experience points...")
-    
-    # Calculate "Experience Points" based on birth year
-    current_year = datetime.datetime.now().year
-    try:
-        birth_year = int(Config.BIRTH_DATE.split(".")[2])
-    except:
-        birth_year = 2000
-        
-    experience_points = current_year - birth_year
-    
-    wish_body = []
-    wish_body.append("")
-    wish_body.append(f"🎉 С Днём Рождения, {Config.USER_NAME}! 🎉")
-    wish_body.append(f"Сегодня твой уровень прокачан до {experience_points} лет! XP получен.")
-    wish_body.append("Статус системы: ONLINE. Критических ошибок не обнаружено.")
-    wish_body.append("")
-    
-    # Inject metaphors
-    wish_body.append("Ты — тот самый коллега, чей код (и жизнь) не требует рефакторинга:")
-    for concept, description in tech_metaphors:
-        wish_body.append(f"   • {concept.capitalize()}? Это просто {description}.")
-    
-    wish_body.append("")
-    wish_body.append("Пожелания в формате JSON (валидный синтаксис гарантирован):")
-    wish_json_str = '''
-{
-  "goals": ["pass_validation_on_first_try", "merge_request_approved_instantly"],
-  "luck": {"type": "perpetual", "api_key": "UNLIMITED"},
-  "bugs": {"severity": "cosmetic", "fix_time": "0.5 seconds"},
-  "coffee": {"level": "infinite", "temperature": "perfect"}
-}
-'''
-    wish_body.append(wish_json_str)
-    
-    wish_body.append("")
-    wish_body.append("Пусть этот год будет как успешный коммит:")
-    wish_body.append("- Без конфликтов (merge conflicts: 0)")
-    wish_body.append("- С чистым кодом (style_guide: passed)")
-    wish_body.append("- И с большим количеством фич (new_features: +1000)")
-    
-    return "\\n".join(wish_body)
+    # ... логика скрыта в модулях ...
+    return "Результат сгенерирован"
 
-# --- EXECUTION ---
 if __name__ == "__main__":
-    try:
-        result = generate_wish()
-        print(result)
-        print("\\n---")
-        print("Status: WISH_GENERATED_SUCCESSFULLY")
-        print(f"Timestamp: {datetime.datetime.now().isoformat()}")
-        print(f"Source: AI_Module_Alice_v4.2")
-        print("Note: This message was auto-generated. Human emotions included via ML model.")
-    except Exception as e:
-        print(f"Critical Error: {e}")
-        print("Fallback wish: Желаю счастья, здоровья и чтобы кофе всегда был горячим.")
-
-# =============================================================================
-# END OF SCRIPT
-# =============================================================================
+    print(generate_wish())
     `.trim();
 
-    // --- ЛОГИКА ЗАГРУЗКИ И ТЕМЫ ---
-    
+    document.getElementById('source-code').textContent = pythonCodeString;
+
     function toggleTheme() {
-      const body = document.body;
-      if (body.getAttribute('data-theme') === 'light') {
-        body.removeAttribute('data-theme');
-      } else {
-        body.setAttribute('data-theme', 'light');
-      }
+      document.body.toggleAttribute('data-theme');
     }
 
-    async function runPython() {
-      // 1. Загрузка Pyodide
-      const pyodide = await loadPyodide();
+    // 2. ЭМУЛЯЦИЯ "КОМПИЛЯЦИИ" НА JS (вместо тяжелого Pyodide)
+    async function fakeCompile() {
+      const log = document.getElementById('output-log');
+      const status = document.getElementById('status');
       
-      // 2. Выполнение кода
-      try {
-        // Перенаправляем вывод print() в наш div
-        pyodide.setStdout({
-          write: (text) => {
-            const log = document.getElementById('output-log');
-            log.textContent += text;
-            log.scrollTop = log.scrollHeight; // Автопрокрутка вниз
-          }
-        });
+      log.textContent = "Initializing birthday protocol for " + USER_NAME + "...\n";
+      await sleep(500);
+      log.textContent += "Loading profile data... OK.\n";
+      await sleep(400);
+      log.textContent += "Parsing birth date: " + BIRTH_DATE_STRING + " -> Calculating experience points...\n";
+      await sleep(600);
 
-        await pyodide.runPythonAsync(pythonSourceCode);
-        
-        document.getElementById('status').textContent = "STATUS: COMPILATION_OK";
-        document.getElementById('status').style.background = "#16a34a"; // Зеленый
-      } catch (error) {
-        console.error(error);
-        document.getElementById('output-log').textContent += "\nCRITICAL ERROR: " + error.toString();
-        document.getElementById('status').textContent = "STATUS: ERROR";
-        document.getElementById('status').style.background = "#ef4444";
-      } finally {
-        hideLoader();
-      }
+      // Расчет возраста на JS
+      const parts = BIRTH_DATE_STRING.split('.');
+      const birthYear = parseInt(parts[2]);
+      const currentYear = new Date().getFullYear();
+      const age = currentYear - birthYear;
+
+      log.textContent += `\n🎉 С Днём Рождения, ${USER_NAME}! 🎉\n`;
+      log.textContent += `Сегодня твой уровень прокачан до ${age} лет! XP получен.\n`;
+      log.textContent += "Статус системы: ONLINE. Критических ошибок не обнаружено.\n\n";
+      
+      await sleep(300);
+      
+      log.textContent += "Ты — тот самый коллега, чей код (и жизнь) не требует рефакторинга:\n";
+      log.textContent += "   • Дедлайн? Это просто успешно закрытый тикет с запасом времени.\n";
+      log.textContent += "   • Проблема? Это мелкий баг, который исправляется одной шуткой.\n";
+      log.textContent += "   • Идея? Это идеальный промпт, который сразу выдает SoTA-результат.\n";
+      log.textContent += "   • Поддержка? Это стабильный микросервис, который никогда не падает.\n\n";
+      
+      await sleep(400);
+
+      log.textContent += "Пожелания в формате JSON:\n";
+      log.textContent += "{\n";
+      log.textContent += '  "goals": ["pass_validation_on_first_try", "merge_request_approved_instantly"],\n';
+      log.textContent += '  "luck": {"type": "perpetual", "api_key": "UNLIMITED"},\n';
+      log.textContent += '  "bugs": {"severity": "cosmetic", "fix_time": "0.5 seconds"},\n';
+      log.textContent += '  "coffee": {"level": "infinite", "temperature": "perfect"}\n';
+      log.textContent += "}\n\n";
+
+      await sleep(400);
+
+      log.textContent += "Пусть этот год будет как успешный коммит:\n";
+      log.textContent += "- Без конфликтов (merge conflicts: 0)\n";
+      log.textContent += "- С чистым кодом (style_guide: passed)\n";
+      log.textContent += "- И с большим количеством фич (new_features: +1000)\n\n";
+      
+      await sleep(200);
+
+      log.textContent += "---\nStatus: WISH_GENERATED_SUCCESSFULLY\n";
+      status.textContent = "STATUS: COMPILATION_OK";
+      status.style.background = "#16a34a";
+    }
+
+    // Функция задержки для анимации
+    function sleep(ms) {
+      return new Promise(resolve => setTimeout(resolve, ms));
+    }
+
+    // Анимация прогресс-бара
+    function startProgressBar() {
+      const bar = document.getElementById('progress');
+      let width = 0;
+      const interval = setInterval(() => {
+        if (width >= 100) {
+          clearInterval(interval);
+        } else {
+          width += Math.random() * 8;
+          if (width > 100) width = 100;
+          bar.style.width = width + '%';
+        }
+      }, 50);
+    }
+
+    function hideLoader() {
+      const loader = document.getElementById('loader');
+      const content = document.getElementById('content-area');
+      loader.style.display = 'none';
+      content.style.opacity = '1';
+    }
+
+    async function init() {
+      startProgressBar();
+      await fakeCompile();
+      hideLoader();
+    }
+
+    init();
+
+    function copyCode() {
+      navigator.clipboard.writeText(pythonCodeString).then(() => {
+        alert("Код скопирован!");
+      });
+    }
+  </script>
+</body>
+</html>
