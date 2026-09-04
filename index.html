@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-  <title>Birthday Wish · Compiler</title>
+  <title>Birthday · Compiler</title>
   <style>
     /* ----- reset & variables ----- */
     * { margin: 0; padding: 0; box-sizing: border-box; }
@@ -41,7 +41,7 @@
       transition: background var(--transition), color var(--transition);
     }
 
-    /* ----- loader: 24 candles ----- */
+    /* ----- loader: 24 candles in circle ----- */
     #loader {
       position: fixed;
       inset: 0;
@@ -51,28 +51,29 @@
       flex-direction: column;
       align-items: center;
       justify-content: center;
-      transition: opacity 0.6s;
+      transition: opacity 0.8s ease;
     }
     #loader.hidden {
       opacity: 0;
       pointer-events: none;
     }
-    .candle-grid {
-      display: grid;
-      grid-template-columns: repeat(8, 1fr);
-      gap: 8px 14px;
-      margin-bottom: 2rem;
+    .candle-ring {
+      position: relative;
+      width: 320px;
+      height: 320px;
+      margin-bottom: 2.5rem;
     }
     .candle {
+      position: absolute;
       width: 28px;
       height: 44px;
       background: #2d2a3e;
       border-radius: 6px 6px 2px 2px;
-      position: relative;
       box-shadow: inset 0 0 0 1px rgba(255,255,255,0.05);
-      transition: background 0.3s, box-shadow 0.3s;
+      transition: background 0.4s, box-shadow 0.4s;
       display: flex;
       justify-content: center;
+      transform-origin: center center;
     }
     .candle .flame {
       position: absolute;
@@ -82,7 +83,7 @@
       background: #fbbf24;
       border-radius: 80% 20% 50% 50% / 60% 40% 60% 40%;
       opacity: 0;
-      transform: scale(0.6);
+      transform: scale(0.4);
       transition: opacity 0.5s, transform 0.4s;
       box-shadow: 0 0 18px #f59e0b;
       filter: blur(0.4px);
@@ -108,21 +109,7 @@
       font-size: 0.9rem;
       letter-spacing: 0.3px;
       margin-top: 0.5rem;
-    }
-    .progress-track {
-      width: 260px;
-      height: 4px;
-      background: var(--border);
-      border-radius: 4px;
-      overflow: hidden;
-      margin-top: 0.5rem;
-    }
-    .progress-fill {
-      height: 100%;
-      width: 0%;
-      background: var(--accent);
-      border-radius: 4px;
-      transition: width 0.15s linear;
+      text-align: center;
     }
 
     /* ----- header ----- */
@@ -210,12 +197,14 @@
       flex: 1;
       display: flex;
       flex-direction: column;
+      min-height: 70vh;
     }
     .tab-content {
       display: none;
       flex-direction: column;
       gap: 1rem;
       animation: fade 0.25s ease;
+      flex: 1;
     }
     .tab-content.active { display: flex; }
     @keyframes fade { from { opacity: 0.4; } to { opacity: 1; } }
@@ -230,6 +219,7 @@
       flex: 1;
       display: flex;
       flex-direction: column;
+      min-height: 400px;
     }
     .panel-header {
       display: flex;
@@ -269,8 +259,8 @@
       border: 1px solid var(--border);
       flex: 1;
       overflow-y: auto;
-      max-height: 60vh;
-      min-height: 200px;
+      min-height: 300px;
+      max-height: 70vh;
       transition: background var(--transition), border var(--transition);
     }
     textarea {
@@ -284,8 +274,8 @@
       padding: 1rem;
       resize: vertical;
       flex: 1;
-      min-height: 200px;
-      max-height: 60vh;
+      min-height: 300px;
+      max-height: 70vh;
       outline: none;
       transition: 0.2s;
     }
@@ -307,8 +297,9 @@
       .tabs { padding: 0 1rem; overflow-x: auto; flex-wrap: nowrap; }
       .tab-btn { padding: 0.6rem 1rem; font-size: 0.85rem; white-space: nowrap; }
       .layout { padding: 1rem; }
-      .panel { padding: 1rem; }
-      .candle-grid { gap: 4px 8px; }
+      .panel { padding: 1rem; min-height: 300px; }
+      pre, textarea { min-height: 200px; max-height: 50vh; }
+      .candle-ring { width: 240px; height: 240px; }
       .candle { width: 22px; height: 36px; }
       .candle .flame { width: 8px; height: 13px; top: -8px; }
     }
@@ -316,11 +307,10 @@
 </head>
 <body>
 
-  <!-- LOADER: 24 свечей -->
+  <!-- LOADER: 24 свечей по кругу -->
   <div id="loader">
-    <div class="candle-grid" id="candleGrid"></div>
-    <p>зажигаем свечи …</p>
-    <div class="progress-track"><div class="progress-fill" id="progressFill"></div></div>
+    <div class="candle-ring" id="candleRing"></div>
+    <p>Зажигаем свечи…</p>
   </div>
 
   <!-- HEADER -->
@@ -370,19 +360,35 @@
 
   <script>
     // ====== НАСТРОЙКИ ======
-    const USER_NAME = "Алексей";        // ← впиши имя
+    const USER_NAME = "Алексей";
     const BIRTH_DATE = "04.09.2002";
+
+    // ====== БИБЛИОТЕКА ФРАЗ ======
+    // --- DATASETS & LIBRARIES ---
+    const birthday_phrases = [
+      "Твой личный сервер счастья работает без даунтайма уже N лет.",
+      "Пусть все баги в жизни будут только косметическими.",
+      "Желаю, чтобы каждый день компилировался с первого раза.",
+      "Пусть удача будет твоим постоянным API-ключом."
+    ];
 
     // ====== ГЕНЕРАТОР ПОЗДРАВЛЕНИЯ ======
     function generateWish(name, birthDate) {
       const parts = birthDate.split('.');
       const birthYear = parseInt(parts[2], 10);
       const age = new Date().getFullYear() - birthYear;
+      // подставим возраст в первую фразу
+      const phrase1 = birthday_phrases[0].replace('N', age);
       return `
   🎉 С Днём Рождения, ${name}! 🎉
 
   Сегодня твой уровень прокачан до ${age} лет.
   Статус: ONLINE · критические ошибки отсутствуют.
+
+  ${phrase1}
+  ${birthday_phrases[1]}
+  ${birthday_phrases[2]}
+  ${birthday_phrases[3]}
 
   Ты — тот коллега, чей код (и жизнь) не требует рефакторинга:
     • дедлайн? → закрытый тикет с запасом времени.
@@ -404,7 +410,7 @@
     • с кучей новых фич (new_features: +1000)
 
   ---
-  status: WISH_GENERATED_SUCCESSFULLY
+  status: THE_WISH_HAS_BEEN_SUCCESSFULLY_SENT
       `.trim();
     }
 
@@ -412,6 +418,14 @@
 # версия 4.2.9 · target: ${USER_NAME}
 
 import datetime
+
+# --- DATASETS & LIBRARIES ---
+birthday_phrases = [
+    "Твой личный сервер счастья работает без даунтайма уже N лет.",
+    "Пусть все баги в жизни будут только косметическими.",
+    "Желаю, чтобы каждый день компилировался с первого раза.",
+    "Пусть удача будет твоим постоянным API-ключом."
+]
 
 CONFIG = {
     "birth_date": "${BIRTH_DATE}",
@@ -430,64 +444,64 @@ if __name__ == "__main__":
     const outputDisplay = document.getElementById('outputDisplay');
     const codeEditor = document.getElementById('codeEditor');
     const statusBadge = document.getElementById('statusBadge');
-    const progressFill = document.getElementById('progressFill');
 
-    // ====== свечи ======
-    const candleGrid = document.getElementById('candleGrid');
+    // ====== свечи по кругу ======
+    const ring = document.getElementById('candleRing');
     const CANDLE_COUNT = 24;
-    let litCount = 0;
+    const radius = 140; // радиус кольца
+    const center = 160;
+    const candles = [];
+
     for (let i = 0; i < CANDLE_COUNT; i++) {
+      const angle = (i / CANDLE_COUNT) * 2 * Math.PI - Math.PI / 2;
+      const x = center + radius * Math.cos(angle);
+      const y = center + radius * Math.sin(angle);
+
       const div = document.createElement('div');
       div.className = 'candle';
+      div.style.left = (x - 14) + 'px';
+      div.style.top = (y - 22) + 'px';
+      div.style.transform = `rotate(${angle + Math.PI/2}rad)`;
       div.innerHTML = `<div class="wick"></div><div class="flame"></div>`;
-      div.dataset.index = i;
-      candleGrid.appendChild(div);
+      ring.appendChild(div);
+      candles.push(div);
     }
-    const candles = document.querySelectorAll('.candle');
 
-    function lightCandles(progress) {
-      // progress 0..1
-      const target = Math.min(CANDLE_COUNT, Math.floor(progress * CANDLE_COUNT));
-      for (let i = 0; i < candles.length; i++) {
-        if (i < target) candles[i].classList.add('lit');
-        else candles[i].classList.remove('lit');
+    // ====== загрузка: зажигаем свечи по очереди ======
+    let litIndex = 0;
+    let loaderHidden = false;
+
+    function lightNextCandle() {
+      if (litIndex >= CANDLE_COUNT) {
+        // все свечи зажжены → пауза 1с → скрываем загрузчик
+        if (!loaderHidden) {
+          loaderHidden = true;
+          setTimeout(() => {
+            document.getElementById('loader').classList.add('hidden');
+            statusBadge.textContent = '✨ готово';
+          }, 1000);
+        }
+        return;
       }
-    }
-
-    // ====== загрузка ======
-    let progressValue = 0;
-    function updateProgress() {
-      if (progressValue >= 1) return;
-      progressValue += 0.02 + Math.random() * 0.04;
-      if (progressValue > 1) progressValue = 1;
-      progressFill.style.width = (progressValue * 100) + '%';
-      lightCandles(progressValue);
-      if (progressValue < 1) requestAnimationFrame(updateProgress);
+      candles[litIndex].classList.add('lit');
+      litIndex++;
+      // случайная задержка между свечами (80–180 мс)
+      const delay = 80 + Math.random() * 100;
+      setTimeout(lightNextCandle, delay);
     }
 
     // ====== инициализация ======
     function init() {
-      // код в редактор
       codeEditor.value = DEFAULT_CODE;
-      // генерируем пожелание
       refreshWish();
-
-      // запускаем прогресс
-      updateProgress();
-
-      // скрываем загрузчик через 2.5 сек (имитация)
-      setTimeout(() => {
-        document.getElementById('loader').classList.add('hidden');
-        statusBadge.textContent = '✨ готово';
-      }, 2800);
+      // старт анимации свечей
+      setTimeout(lightNextCandle, 400);
     }
 
     // ====== обновить пожелание (из кода) ======
     function refreshWish() {
       try {
-        // эмуляция: из кода берём имя и дату (можно парсить, но оставим простоту)
         const code = codeEditor.value;
-        // попробуем вытащить user_name и birth_date из кода (примитивно)
         let name = USER_NAME;
         let date = BIRTH_DATE;
         const nameMatch = code.match(/["']user_name["']\s*:\s*["']([^"']+)["']/i);
@@ -504,7 +518,6 @@ if __name__ == "__main__":
 
     // ====== сохранить ======
     function saveCode() {
-      // просто сохраняем в localStorage и обновляем вывод
       localStorage.setItem('birthday_code', codeEditor.value);
       refreshWish();
       statusBadge.textContent = '💾 сохранено';
@@ -517,7 +530,6 @@ if __name__ == "__main__":
         statusBadge.textContent = '📋 скопировано';
         setTimeout(() => { statusBadge.textContent = '✨ готово'; }, 1200);
       }).catch(() => {
-        // fallback
         codeEditor.select();
         document.execCommand('copy');
         statusBadge.textContent = '📋 скопировано';
@@ -528,6 +540,7 @@ if __name__ == "__main__":
     function toggleTheme() {
       const current = document.documentElement.getAttribute('data-theme');
       document.documentElement.setAttribute('data-theme', current === 'light' ? '' : 'light');
+      localStorage.setItem('theme', document.documentElement.getAttribute('data-theme') || '');
     }
 
     // ====== табы ======
@@ -537,43 +550,27 @@ if __name__ == "__main__":
         document.querySelectorAll('.tab-content').forEach(c => c.classList.remove('active'));
         this.classList.add('active');
         document.getElementById(this.dataset.tab).classList.add('active');
-        // при переключении на вкладку кода — подсветим
         if (this.dataset.tab === 'tab2') {
           codeEditor.focus();
         }
       });
     });
 
-    // автосохранение при изменении кода (опционально)
-    codeEditor.addEventListener('input', () => {
-      // можно автосохранять, но оставим ручное
-    });
-
-    // загружаем сохранённый код, если есть
+    // загружаем сохранённый код
     const saved = localStorage.getItem('birthday_code');
     if (saved) codeEditor.value = saved;
+
+    // восстанавливаем тему
+    const storedTheme = localStorage.getItem('theme');
+    if (storedTheme === 'light') document.documentElement.setAttribute('data-theme', 'light');
 
     // запуск
     init();
 
-    // вытаскиваем функции в глобалку для кнопок
+    // глобальные функции
     window.refreshWish = refreshWish;
     window.saveCode = saveCode;
     window.copyCode = copyCode;
-    window.toggleTheme = toggleTheme;
-
-    // дополнительный фикс: при загрузке тема из localStorage
-    (function loadTheme() {
-      const stored = localStorage.getItem('theme');
-      if (stored === 'light') document.documentElement.setAttribute('data-theme', 'light');
-    })();
-    // сохраняем тему при переключении
-    const origToggle = toggleTheme;
-    toggleTheme = function() {
-      origToggle();
-      const theme = document.documentElement.getAttribute('data-theme') || '';
-      localStorage.setItem('theme', theme);
-    };
     window.toggleTheme = toggleTheme;
   </script>
 </body>
